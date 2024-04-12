@@ -188,7 +188,8 @@ void ControlPilot::run_state_machine() {
 
 		case InternalCPState::D:
 		case InternalCPState::C:
-
+			pwm_running = true;
+			power_on_allowed = true;
 			error_flags.diode_fault = false;
 			if (not pwm_running) { // C1
 				// Table A.6 Sequence 10.2: EV does not stop drawing power
@@ -275,7 +276,7 @@ void ControlPilot::disable() {
 // returns false if signal is unstable/invalid and cp argument was not
 // updated.
 bool ControlPilot::read_from_car(InternalCPState *cp) {
-	bool cp_signal_valid = false;
+	bool cp_signal_valid = true;
 
 	if (control_pilot_hal.readCPSignal()) {
 		cp_lo = control_pilot_hal.getCPLo();
@@ -295,6 +296,7 @@ bool ControlPilot::read_from_car(InternalCPState *cp) {
 			*cp = InternalCPState::E;
 			return true;
 		}
+		if (cp_hi > 5.0) pwm_running = false;
 		// sth is wrong with negative signal
 		if (pwm_running && !is_voltage_in_range(cp_lo, -12.)) {
 			if (is_voltage_in_range(cp_hi + cp_lo, 0.)) {
